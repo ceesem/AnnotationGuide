@@ -1,7 +1,11 @@
-from base import AnnotationGuide
+from .base import AnnotationGuide
+
+__version__ = "0.0.0"
 
 
-def build_annotation_guide(client, table_name=None, schema_name=None, update=False):
+def build_annotation_guide(
+    client, table_name=None, schema_name=None, update=False, id_field=False
+):
     """Build an annotation guide for a schema or table.
 
     Parameters
@@ -20,15 +24,16 @@ def build_annotation_guide(client, table_name=None, schema_name=None, update=Fal
     AnnotationGuide
     """
     if table_name is not None:
-        if schema_name is None:
-            raise ValueError("Must specify either table name or schema name")
         obj_name = table_name
         schema_name = client.materialize.get_table_metadata(table_name)["schema"]
     else:
+        if schema_name is None:
+            raise ValueError("Must specify either table name or schema name")
         obj_name = schema_name
     schema = client.schema.schema_definition(schema_name)
     return AnnotationGuide(
         schema,
         name=obj_name,
         update=update,
+        id_field=id_field,
     )

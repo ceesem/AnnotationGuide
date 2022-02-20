@@ -6,19 +6,23 @@ SPATIAL_POINT_CLASSES = ["SpatialPoint", "BoundSpatialPoint"]
 
 
 class AnnotationGuide(object):
-    def __init__(self, schema, name=None, update=False):
-        """AnnotationGuide object, which helps produce a
+    def __init__(self, schema, name=None, update=False, id_field=False):
+        """AnnotationGuide object, which helps produce annotations consistent with a CAVE infrastructure
+        annotation schema.
 
         Parameters
         ----------
         schema : dict
             JSONschema object.
         name : _type_, optional
-            _description_, by default None
-        update : bool, optional
+           _description_, by default None
+        id_field : bool, optional
             _description_, by default False
         """
         self._schema = schema
+        if update:
+            id_field = True
+        self._id_field = id_field
         self._update = update
         self._classes = [x for x in schema["definitions"].keys()]
         self._ref_class = schema.get("$ref").split("/")[-1]
@@ -49,24 +53,22 @@ class AnnotationGuide(object):
         self._anno_list = []
 
         self.add = self._make_anno_func(
-            id_field=self._update, mixin=(self._build_mixin(),)
+            id_field=self._id_field, mixin=(self._build_mixin(),)
         )
 
     def __repr__(self):
-        nanno = len(self._anno_list)
         if self._update:
             update = "Update"
         else:
             update = "New"
-        return f"{update} annotation helper for {self.name} with {nanno} annotations."
+        return f"{update} annotation helper for {self.name} ({len(self)} annotations)"
 
-    @property
-    def update(self):
-        return self._update
+    def __len__(self):
+        return len(self._anno_list)
 
     @property
     def fields(self):
-        if self.update:
+        if self._id_field:
             return ["id"] + self._prop_names
         else:
             return self._prop_names
@@ -81,6 +83,9 @@ class AnnotationGuide(object):
             [self._process_annotation(a, flat=True) for a in self._anno_list],
         )
 
+    def clear_annotations(self):
+        self._anno_list = []
+
     def _process_annotation(self, anno, flat=False):
         dflat = attrs.asdict(anno, filter=lambda a, v: v is not None)
         if flat:
@@ -92,7 +97,7 @@ class AnnotationGuide(object):
         class AddAndValidate(object):
             def __attrs_post_init__(inner_self):
                 jsonschema.validate(self._process_annotation(inner_self), self._schema)
-                if self._update:
+                if self._id_field:
                     if "id" not in d:
                         raise jsonschema.ValidationError(
                             '"id" field must be in annotation.'
