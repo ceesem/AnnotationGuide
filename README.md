@@ -43,6 +43,7 @@ guide = ag.AnnotationGuide(schema=schema)
 ### Adding New Annotations
 
 Annotations are added to the guide object, which stores a list of annotations.
+Note that the number and names of the arguments are built from the specific schema used, so they will depend on the specifics of your use.
 
 ```python
 guide.add(
